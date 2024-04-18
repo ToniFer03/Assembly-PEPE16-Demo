@@ -32,9 +32,7 @@ Station5_number       EQU 4         ;Number of the station
 Station5_price        EQU 550       ;Price of the ticket in cents
 
 ; Variables
-Inserted_euro        EQU 8000H      ;Hold the current money inserted on memory
-Inserted_cent1       EQU 8010H      ;Hold the current cents (dezens) on memory
-Inserted_cent2       EQU 8020H      ;Hold the current cents (units) on memory
+Inserted_money       EQU 8000H      ;Hold the current money inserted on memory
 Price_pay            EQU 8030H      ;Hold the price to be payed
 
 
@@ -216,23 +214,23 @@ StationUpdatePrice:
     MOV R7, Price_money_cent        ;Move the address of the price in cents of the ticket on the display to R7
     MOVB [R7], R5                   ;Update the price on the display
 StationUpdateInsertedMoney:
-    MOV R5, Display_constant        ;Mov the value of the display constant to R5
-    MOV R4, Inserted_euro           ;Mov to R4 the address in memory that will hold the euros added
-    MOV R6, [R4]                    ;Mov to R6 the value pointed by the address in R4
-    ADD R5, R6                      ;Add the constant so the value displayed is correct
-    MOV R4, Inserted_money_euro     ;Mov to R4 the address of the inserted euros on the display
-    MOVB [R4], R5                   ;Display the value of R5 in the screen position pointed by R4
-    MOV R5, Display_constant        ;Mov the value of the display constant to R5
-    MOV R4, Inserted_cent1          ;Address of the first cent digit on the display to R5
-    MOV R6, [R4]                    ;Pass to R6 the cent value in memory pointed by R4
-    ADD R5, R6                      ;Add the display constant so the value displayed is correct
-    MOV R4, Inserted_money_cent1    ;Mov to R4 the screen position of the first digit of the cents on the display
-    MOVB [R4], R5                   ;Display on that position the cent value stored in R5 
-    MOV R5, Display_constant        ;Mov the value of the display constant to R5
-    MOV R6, 0                       ;The second digit of the cents will always be 0
-    ADD R5, R6                      ;Add the display constant so the value displayed is correct
-    MOV R4, Inserted_money_cent2    ;Mov to R4 the screen position of the first digit of the cents on the display
-    MOVB [R4], R5                   ;Display the value of the second digit of the cents
+    MOV R4, Inserted_money          ;Address that stores how much money has been inserted
+    MOV R5, [R4]                    ;Put the value of how much has been inserted in R5
+    MOV R6, 100                     ;Put in R6 100, so we can separate the price between euros and cents
+    DIV R5, R6                      ;Division between the price and 100, to get the value in euros
+    MOV R6, Display_constant        ;Put the constant to add for the values to be displayed on R6
+    ADD R5, R6                      ;Apply the constant to display the value
+    MOV R7, Inserted_money_euro     ;Move the address of the price in euros of the ticket on the display to R7
+    MOVB [R7], R5                   ;Update the price on the display
+    MOV R5, [R4]                    ;Put the value of how much has been inserted in R5
+    MOV R6, 100                     ;Put in R6 100, so we can separate the price between euros and cents
+    MOD R5, R6                      ;Rest of division between the price and 100, to get the value in cents
+    MOV R6, 10                      ;Put in R6 10, so we can get the first digit of the cents
+    DIV R5, R6                      ;Get the first digit of the cents
+    MOV R6, Display_constant        ;Put the constant to add for the values to be displayed on R6
+    ADD R5, R6                      ;Apply the constant to display the value
+    MOV R7, Inserted_money_cent1    ;Move the address of the price in euros of the ticket on the display to R7
+    MOVB [R7], R5                   ;Update the price on the display
 StationMenuLogic:
     CALL Clean_Peripherals           ;Call rotine to clean peripherals
     MOV R0, IN_PER                  ;Loads input peripheral address to R0
@@ -259,85 +257,50 @@ InsertMoneyScreen:
     MOV R2, ChooseMoneyMenu         ;Moves to R2 the ChooseMoneyMenu address
     CALL SetupScreen                ;Updates the screen
 InsertMoney:
-    CALL Clean_Peripherals           ;Call rotine to clean peripherals
+    CALL Clean_Peripherals          ;Call rotine to clean peripherals
     MOV R0, IN_PER                  ;Loads input peripheral address to R0
     MOVB R1, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
     CMP R1, 1                       ;Compares R1 with the value 1
-    JEQ euro5added                  ;Calls logic to add 5 euros
+    JEQ Add_5_Euros                 ;Calls logic to add 5 euros
     CMP R1, 2                       ;Compares R1 with the value 2
-    JEQ euro2added                  ;Call the logic to add 2 euros
+    JEQ Add_2_Euros                 ;Call the logic to add 2 euros
     CMP R1, 3                       ;Compares R1 with the value 3
-    JEQ euro1added                  ;Call the logic to add 1 euro
+    JEQ Add_1_Euro                  ;Call the logic to add 1 euro
     CMP R1, 4                       ;Compares R1 with the value 3
-    JEQ cent50added                 ;Call the logic to add 50 cents
+    JEQ Add_50_cents                ;Call the logic to add 50 cents
     CMP R1, 5                       ;Compares R1 with the value 3
-    JEQ cent20added                 ;Call the logic to add 20 cents
+    JEQ Add_20_cents                ;Call the logic to add 20 cents
     CMP R1, 6                       ;Compares R1 with the value 3
-    JEQ cent10added                 ;Call the logic to add 10 cents
+    JEQ Add_10_cents                ;Call the logic to add 10 cents
     JMP InsertMoney                 ;In case the option is invalid or not selected, repeat rotine
 
-euro5added:
-    MOV R4, Inserted_euro           ;Mov to R4 the address in memory that will hold the euros added
-    MOV R5, 5                       ;Mov the value 5 to R5
-    MOV R6, [R4]                    ;Mov to R6 the value stored on R4
-    ADD R5, R6                      ;Sum the value already added to the value to be added
-    MOV [R4], R5                    ;Put the current value on the memory address pointed by R4
-    CALL Move_Correct_Station       ;Call rotine to jump to the correct station screen
-euro2added:
-    MOV R4, Inserted_euro           ;Mov to R4 the address in memory that will hold the euros added
-    MOV R5, 2                       ;Mov the value 2 to R5
-    MOV R6, [R4]                    ;Mov to R6 the value stored on R4
-    ADD R5, R6                      ;Sum the value already added to the value to be added
-    MOV [R4], R5                    ;Put the current value on the memory address pointed by R4
-    CALL Move_Correct_Station       ;Call rotine to jump to the correct station screen
-euro1added:
-    MOV R4, Inserted_euro           ;Mov to R4 the address in memory that will hold the euros added
-    MOV R5, 1                       ;Mov the value 1 to R5
-    MOV R6, [R4]                    ;Mov to R6 the value stored on R4
-    ADD R5, R6                      ;Sum the value already added to the value to be added
-    MOV [R4], R5                    ;Put the current value on the memory address pointed by R4
-    CALL Move_Correct_Station       ;Call rotine to jump to the correct station screen
-cent50added:
-    MOV R4, Inserted_cent1          ;Memory address that holds how many cents have been added
-    MOV R5, 5                       ;Put 5 in R5 to simbolize 50 cents
+Add_5_Euros:
+    MOV R5, 500                     ;Mov the value 500 to R5
+    CALL Add_Inserted_Money_Memory  ;Call rotine to jump to the correct station screen
+Add_2_Euros:
+    MOV R5, 200                     ;Mov the value 200 to R5
+    CALL Add_Inserted_Money_Memory  ;Call rotine to jump to the correct station screen
+Add_1_Euro:
+    MOV R5, 100                     ;Mov the value 100 to R5
+    CALL Add_Inserted_Money_Memory  ;Call rotine to jump to the correct station screen
+Add_50_cents:
+    MOV R5, 50                      ;Put 5 in R5 to simbolize 50 cents
+    CALL Add_Inserted_Money_Memory  ;Call rotine to jump to the correct station screen
+Add_20_cents:
+    MOV R5, 20                      ;Put 5 in R5 to simbolize 50 cents
+    CALL Add_Inserted_Money_Memory  ;Call rotine to jump to the correct station screen
+Add_10_cents:
+    MOV R5, 10                      ;Put 5 in R5 to simbolize 50 cents
+    CALL Add_Inserted_Money_Memory  ;Call rotine to jump to the correct station screen
+
+Add_Inserted_Money_Memory:
+    MOV R4, Inserted_money          ;Memory address that holds how many cents have been added
     MOV R6, [R4]                    ;Pass the cents already incerted to R6
     ADD R5, R6                      ;Add the value already incerted to the value beign incerted 
-    MOV R7, Cent_overflow           ;Pass the value where an "overflow of cents" would happen         
-    CMP R5, R7                      ;Compare the value of cents added ot the overflow value
-    JGE HandleCentOverflow          ;In case R5 is equal or greater jump to the routine to handle the overflow
-    MOV [R4], R5                    ;Put the current value on the memory address pointed by R4
-    CALL Move_Correct_Station       ;Call rotine to jump to the correct station screen
-cent20added:
-    MOV R4, Inserted_cent1          ;Memory address that holds how many cents have been added
-    MOV R5, 2                       ;Put 5 in R5 to simbolize 50 cents
-    MOV R6, [R4]                    ;Pass the cents already incerted to R6
-    ADD R5, R6                      ;Add the value already incerted to the value beign incerted 
-    MOV R7, Cent_overflow           ;Pass the value where an "overflow of cents" would happen         
-    CMP R5, R7                      ;Compare the value of cents added ot the overflow value
-    JGE HandleCentOverflow          ;In case R5 is equal or greater jump to the routine to handle the overflow
-    MOV [R4], R5                    ;Put the current value on the memory address pointed by R4
-    CALL Move_Correct_Station       ;Call rotine to jump to the correct station screen
-cent10added:
-    MOV R4, Inserted_cent1          ;Memory address that holds how many cents have been added
-    MOV R5, 1                       ;Put 5 in R5 to simbolize 50 cents
-    MOV R6, [R4]                    ;Pass the cents already incerted to R6
-    ADD R5, R6                      ;Add the value already incerted to the value beign incerted 
-    MOV R7, Cent_overflow           ;Pass the value where an "overflow of cents" would happen         
-    CMP R5, R7                      ;Compare the value of cents added ot the overflow value
-    JGE HandleCentOverflow          ;In case R5 is equal or greater jump to the routine to handle the overflow
     MOV [R4], R5                    ;Put the current value on the memory address pointed by R4
     CALL Move_Correct_Station       ;Call rotine to jump to the correct station screen
 
-HandleCentOverflow:
-    SUB R5, R7                      ;Subtract the overflow value from R5
-    MOV R4, Inserted_cent1          ;Memory address that holds the inserted cents
-    MOV [R4], R5                    ;Put the current value on the memory address pointed by R4
-    MOV R4, Inserted_euro           ;Mov to R4 the address in memory that will hold the euros added
-    MOV R5, 1                       ;Mov the value 1 to R5
-    MOV R6, [R4]                    ;Mov to R6 the value stored on R4
-    ADD R5, R6                      ;Sum the value already added to the value to be added
-    MOV [R4], R5                    ;Put the current value on the memory address pointed by R4
-    CALL Move_Correct_Station          ;Call rotine to jump to the correct station screen
+
 
 Buy_Pepe_Ticket:
     ;Compara valor inserido nos euros com o valor do preço
@@ -355,13 +318,7 @@ Enough_Money:
     ;Lógica para caso exista dinheiro suficiente
 
 Clean_Inserted_Memory:
-    MOV R4, Inserted_euro           ;Mov to R4 the address of the inserted euros
-    MOV R5, 0                       ;Mov to R5 the value 0
-    MOV [R4], R5                    ;Set inserted euros to 0 on memory
-    MOV R4, Inserted_cent1          ;Mov to R4 the address of the inserted euros
-    MOV R5, 0                       ;Mov to R5 the value 0
-    MOV [R4], R5                    ;Set inserted euros to 0 on memory
-    MOV R4, Inserted_cent2          ;Mov to R4 the address of the inserted euros
+    MOV R4, Inserted_money          ;Mov to R4 the address of the inserted money
     MOV R5, 0                       ;Mov to R5 the value 0
     MOV [R4], R5                    ;Set inserted euros to 0 on memory
     RET
