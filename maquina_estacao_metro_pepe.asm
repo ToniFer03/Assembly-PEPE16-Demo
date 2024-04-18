@@ -14,6 +14,11 @@ Inserted_money_cent1 EQU 142        ;Display position of the inserted cent first
 Inserted_money_cent2 EQU 143        ;Display position of the inserted cent second digit
 Price_money_euro    EQU 156         ;Display position of the price to be paid euros
 Price_money_cent    EQU 158         ;Display position of the price to be paid cents
+Ticket_number_thousands EQU 130     ;First digit of the ticket number
+Ticket_number_hundreds EQU  131     ;Second digit of the ticket number
+Ticket_number_dozens EQU    132     ;Third digit of the ticket number
+Ticket_number_units EQU     133     ;Fourth digit of the ticket number
+
 
 ; Constants
 Display_constant      EQU 30H       ;Constant that represents 0 on the display
@@ -33,7 +38,13 @@ Station5_price        EQU 550       ;Price of the ticket in cents
 
 ; Variables
 Inserted_money       EQU 8000H      ;Hold the current money inserted on memory
-Price_pay            EQU 8030H      ;Hold the price to be payed
+Price_pay            EQU 8010H      ;Hold the price to be payed
+
+; PEPE Ticket Base Memories
+Pepe_Tickets_Created EQU 8090H      ;Will hold the number of tickets that have been created
+Pepe_Number          EQU 9000H      ;Will hold the number of the pepe code
+Pepe_Balace          EQU 9010H      ;Will hold the charge of the PEPE ticket
+Pepe_Interval        EQU 20H        ;The difference between memory address of 2 pepe tickets  
 
 
 
@@ -61,11 +72,12 @@ StationMenu:
     String "----------------"
 
 Place 300H
-GeneratePepeMessage:
+Pepe_Ticket_Created:
     String "----------------"
     String "  Pepe Gerado   "
     String "  XXXX          "
-    String "  Troco: 00.00  "
+    String "  Troco: 0.00   "
+    String "1- Continuar    "
     String "----------------"
 
 Place 380H
@@ -118,8 +130,17 @@ ChooseMoneyMenu:
 	String "3)1,00          "
 	String "4)0,50          "
 	String "5)0,20          "
-	String "6)0,10          "  
+	String "6)0,10          "
 
+Place 600H
+Not_Enough_Money_Message:
+    String "----------------"
+	String "  Sem Dinheiro  "
+	String "   Suficiente   "
+	String "Para o Pagamento"
+	String "----------------"
+	String "1)Voltar atras  "
+    String "2)Cancelar      "
 
 
 ;Setup Instructions
@@ -133,11 +154,12 @@ Setup:
 Place 3500H
 Begin:
     MOV SP, StackPointer            ;Stack Pointer
+    CALL Main_Menu_Screen           ;Logic for the main menu selection
+
+
+Main_Menu_Screen:
     MOV R2, MainMenu                ;Load main menu adress into R2
     CALL SetupScreen                ;Call rotine to show the updated screen
-    CALL Main_Menu_Selection        ;Logic for the main menu selection
-
-
 Main_Menu_Selection:
     CALL Clean_Inserted_Memory      ;Clean the addresses that will hold the inserted values
     CALL Clean_Peripherals          ;Call rotine to clean peripherals
@@ -168,33 +190,45 @@ Buy_Pepe:
     CMP R1, 4                       ;Compares R1 with the value 4
     JEQ Station5Screen              ;Call Station5LogicRotine
     CMP R1, 5                       ;Compares R1 with the value 5
-    JEQ Main_Menu_Selection         ;Goes back to the main menu
+    JEQ Main_Menu_Screen            ;Goes back to the main menu
     JMP Buy_Pepe                    ;In case the option is invalid or not selected, repeat rotine
 
 
 Station2Screen:
     MOV R3, Station2_number         ;Put in R3 the number of the station we are working on
     MOV R4, Station2_price          ;Put in R4 the price of the ticket on that station
+    MOV R5, Price_pay               ;Memory address that will hold the price to be payed in this station
+    MOV [R5], R4                    ;Update the memory address with the price to be payed
     MOV R2, InsertMoneyMenu         ;Moves to R2 the InsertMoneyMenu address
     CALL SetupScreen                ;Updates the screen
+    CALL StationUpdatePrice         ;Call the function to put the values on screen
 
 Station3Screen:
     MOV R3, Station3_number         ;So after adding money, we know to which station to return
     MOV R4, Station3_price          ;Put in R4 the price of the ticket on that station
+    MOV R5, Price_pay               ;Memory address that will hold the price to be payed in this station
+    MOV [R5], R4                    ;Update the memory address with the price to be payed
     MOV R2, InsertMoneyMenu         ;Moves to R2 the InsertMoneyMenu address
     CALL SetupScreen                ;Updates the screen
+    CALL StationUpdatePrice         ;Call the function to put the values on screen
 
 Station4Screen:
     MOV R3, Station4_number         ;So after adding money, we know to which station to return
     MOV R4, Station4_price          ;Put in R4 the price of the ticket on that station
+    MOV R5, Price_pay               ;Memory address that will hold the price to be payed in this station
+    MOV [R5], R4                    ;Update the memory address with the price to be payed
     MOV R2, InsertMoneyMenu         ;Moves to R2 the InsertMoneyMenu address
     CALL SetupScreen                ;Updates the screen
+    CALL StationUpdatePrice         ;Call the function to put the values on screen
 
 Station5Screen:
     MOV R3, Station5_number         ;So after adding money, we know to which station to return
     MOV R4, Station5_price          ;Put in R4 the price of the ticket on that station
+    MOV R5, Price_pay               ;Memory address that will hold the price to be payed in this station
+    MOV [R5], R4                    ;Update the memory address with the price to be payed
     MOV R2, InsertMoneyMenu         ;Moves to R2 the InsertMoneyMenu address
     CALL SetupScreen                ;Updates the screen
+    CALL StationUpdatePrice         ;Call the function to put the values on screen
 
 StationUpdatePrice:
     MOV R5, R4                      ;Put the price of the ticket on R5
@@ -232,15 +266,15 @@ StationUpdateInsertedMoney:
     MOV R7, Inserted_money_cent1    ;Move the address of the price in euros of the ticket on the display to R7
     MOVB [R7], R5                   ;Update the price on the display
 StationMenuLogic:
-    CALL Clean_Peripherals           ;Call rotine to clean peripherals
+    CALL Clean_Peripherals          ;Call rotine to clean peripherals
     MOV R0, IN_PER                  ;Loads input peripheral address to R0
     MOVB R1, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
     CMP R1, 1                       ;Compares R1 with the value 1
     JEQ InsertMoneyScreen           ;If equal go to the menu that allows to insert money
     CMP R1, 2                       ;Compares R1 with the value 2
-    ;JEQ Pagar
+    JEQ Buy_Pepe_Ticket             ;Menu to pay for the Pepe Ticket
     CMP R1, 3                       ;Compares R1 with the value 3
-    JEQ Main_Menu_Selection         ;Goes back to the main menu
+    JEQ Main_Menu_Screen            ;Goes back to the main menu
     JMP StationMenuLogic            ;Jump to StationMenuLogic
 
 Move_Correct_Station:
@@ -300,22 +334,79 @@ Add_Inserted_Money_Memory:
     MOV [R4], R5                    ;Put the current value on the memory address pointed by R4
     CALL Move_Correct_Station       ;Call rotine to jump to the correct station screen
 
+;After some lines the other label gets out of bounds
+Intermediate1_Main_Menu:
+    CALL Main_Menu_Screen           ;Call Main_Menu_Selection
 
 
 Buy_Pepe_Ticket:
-    ;Compara valor inserido nos euros com o valor do preço
-    ;Se maior salta para parte com o dinheiro suficiente
-    ;Se igual continua
-    ;Comparar valor inserido nos centimos como o valor do preço
-    ;Se maior ou igual salta para a parte com o dinheiro suficiente
-    ;Se tem procede com o pagamento, e criar um pepe com um código único e saldo
-    ;Se não tem apresenta mensagem de erro e volta ao menu anterior
+    MOV R4, Inserted_money          ;Address of the memory that holds the inserted money
+    MOV R5, [R4]                    ;Pass the inserted memory to R5
+    MOV R4, Price_pay               ;Address of the memory that hols the price needed to pay
+    MOV R6, [R4]                    ;Pass the price to pay to R6
+    CMP R5, R6                      ;Compare the inserted money with the price to pay
+    JLT Not_Enough_Money_Screen     ;If the price is not enouth call the routine to handle it
+    CALL Enough_Money               ;Otherwise call the routine to handle the creation of the PEPE
 
+Not_Enough_Money_Screen:
+    MOV R2, Not_Enough_Money_Message;Moves to R2 the ChooseMoneyMenu address
+    CALL SetupScreen                ;Updates the screen
 Not_Enough_Money:
-    ;Lógica para caso não tenha dinheiro suficiente
+    CALL Clean_Peripherals          ;Call rotine to clean peripherals
+    MOV R0, IN_PER                  ;Loads input peripheral address to R0
+    MOVB R1, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
+    CMP R1, 1                       ;Compares R1 with the value 1
+    JEQ Move_Correct_Station        ;Call Move_Correct_Station
+    CMP R1, 2                       ;Compares R1 with the value 2
+    JEQ Intermediate1_Main_Menu     ;Call Main_Menu_Selection
+    JMP Not_Enough_Money            ;In case the option is invalid or not selected, repeat rotine
 
 Enough_Money:
-    ;Lógica para caso exista dinheiro suficiente
+    MOV R4, Pepe_Tickets_Created    ;Address where the number of PEPE ticket that exists is stored
+    MOV R7, [R4]                    ;Pass the number of pepe tickets that exist to R7
+    MOV R8, R7                      ;Make a copy of the value to R8
+    MOV R9, Pepe_Interval           ;The interval between each tickets memory
+    MUL R8, R9                      ;Multiply the number of tickets by the interval
+    MOV R9, Pepe_Number             ;Pass the address of the first ticket memory to R9
+    ADD R9, R8                      ;Get the address to start modifying in R9
+    ADD R7, 1                       ;Add 1 to the tickets created 
+    MOV [R4], R7                    ;Update the value in memory
+    MOV [R9], R7                    ;Give the ticket a number
+    MOV R1, 10H                     ;Address to be added to pass to the next one
+    ADD R9, R1                      ;Move to the next memory cell
+    MOV [R9], R6                    ;Store the tickets balance on memory
+    SUB R5, R6                      ;Get the change to present on R5
+Present_Pepe_Screen:
+    MOV R2, Pepe_Ticket_Created     ;Moves to R2 the ChooseMoneyMenu address
+    CALL SetupScreen                ;Updates the screen
+UpdateTicketNumber:
+    MOV R1, 10                      ;Value to divide by
+    MOV R8, R7                      ;Make a copy of the ticket number
+    MOD R8, R1                      ;Divide by 10 and get the rest to have the first digit
+    MOV R10, Ticket_number_units    ;Display position of the first digit of the ticket number
+    MOV [R10], R8                   ;Update the value on the screen
+    DIV R7, R1                      ;Take out the first digit
+    MOV R8, R7                      ;Make a copy of the ticket number
+    DIV R8, R1                      ;Divide by 100 to get the second digit
+    MOV R10, Ticket_number_dozens   ;Display position of the first digit of the ticket number
+    MOV [R10], R8                   ;Update the value on the screen
+    DIV R7, R1                      ;Take out the first digit
+    MOV R8, R7                      ;Make a copy of the ticket number
+    DIV R8, R1                      ;Divide by 10 to get the third digit
+    MOV R10, Ticket_number_hundreds ;Display position of the first digit of the ticket number
+    MOV [R10], R8                   ;Update the value on the screen
+    DIV R7, R1                      ;Take out the first digit
+    MOV R8, R7                      ;Make a copy of the ticket number
+    DIV R8, R1                      ;Divide by 1 to get the first digit
+    MOV R10, Ticket_number_thousands;Display position of the first digit of the ticket number
+    MOV [R10], R8                   ;Update the value on the screen
+UpdateChange:
+    ;Use the same tactic used before to get the price from the number
+Present_Pepe:
+    ;Logic for the menu of the Pepe
+    CALL Intermediate1_Main_Menu
+
+
 
 Clean_Inserted_Memory:
     MOV R4, Inserted_money          ;Mov to R4 the address of the inserted money
