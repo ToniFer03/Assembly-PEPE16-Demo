@@ -105,7 +105,7 @@ PepeMenu:
     String " Saldo Pepe     "
     String "  0.00          "
     String "1- Comprar      "
-    String "5- Recarregar   "
+    String "2- Recarregar   "
     String "----------------"
 
 Place 480H
@@ -523,15 +523,69 @@ Accepted_Ticket:
     MOVB R1, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
     CMP R1, 1                       ;Compares R1 with the value 1
     ;JEQ Comprar                    ;Go to the main menu
-    CMP R1, 5                       ;Compares R1 with the value 1
-    ;JEQ Recarregar                 ;Go to the main menu
+    CMP R1, 2                       ;Compares R1 with the value 2
+    JEQ Recharge_Pepe_Screen        ;Go to the main menu
     CALL Accepted_Ticket            ;In case no option is choosen repeat routine
 
+
+Buy_With_Pepe_Card_Screen:
+    MOV R2, StationMenu             ;Moves to R2 the StationMenu address
+    CALL SetupScreen                ;Updates the screen
 Buy_With_Pepe_Card:
+    CALL Clean_Peripherals          ;Call rotine to clean peripherals
+    MOV R0, IN_PER                  ;Loads input peripheral address to R0
+    MOVB R1, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
     ;Apresentar menu das estações para comprar com o cartão pepe
     ;Verificar se possui saldo suficiente
     ;Descontar se sim, e apresentar mensagem de compra
     ;Se não apresentar mensagem de erro, para voltar atras ou cancelar
+
+
+Recharge_Pepe_Card:
+    CALL Clean_Peripherals          ;Call rotine to clean peripherals
+    MOV R0, IN_PER                  ;Loads input peripheral address to R0
+    MOVB R1, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
+    CMP R1, 1                       ;Compares R1 with the value 1
+    JEQ Add_5_Euros_Pepe                 ;Calls logic to add 5 euros
+    CMP R1, 2                       ;Compares R1 with the value 2
+    JEQ Add_2_Euros_Pepe                 ;Call the logic to add 2 euros
+    CMP R1, 3                       ;Compares R1 with the value 3
+    JEQ Add_1_Euro_Pepe                  ;Call the logic to add 1 euro
+    CMP R1, 4                       ;Compares R1 with the value 3
+    JEQ Add_50_cents_Pepe                ;Call the logic to add 50 cents
+    CMP R1, 5                       ;Compares R1 with the value 3
+    JEQ Add_20_cents_Pepe                ;Call the logic to add 20 cents
+    CMP R1, 6                       ;Compares R1 with the value 3
+    JEQ Add_10_cents_Pepe                ;Call the logic to add 10 cents
+    JMP Recharge_Pepe_Card          ;In case the option is invalid or not selected, repeat rotine
+
+
+Add_5_Euros_Pepe:
+    MOV R5, 500                     ;Mov the value 500 to R5
+    CALL Add_Money_Pepe_Ticket  ;Call rotine to jump to the correct station screen
+Add_2_Euros_Pepe:
+    MOV R5, 200                     ;Mov the value 200 to R5
+    CALL Add_Money_Pepe_Ticket  ;Call rotine to jump to the correct station screen
+Add_1_Euro_Pepe:
+    MOV R5, 100                     ;Mov the value 100 to R5
+    CALL Add_Money_Pepe_Ticket  ;Call rotine to jump to the correct station screen
+Add_50_cents_Pepe:
+    MOV R5, 50                      ;Put 5 in R5 to simbolize 50 cents
+    CALL Add_Money_Pepe_Ticket  ;Call rotine to jump to the correct station screen
+Add_20_cents_Pepe:
+    MOV R5, 20                      ;Put 5 in R5 to simbolize 50 cents
+    CALL Add_Money_Pepe_Ticket  ;Call rotine to jump to the correct station screen
+Add_10_cents_Pepe:
+    MOV R5, 10                      ;Put 5 in R5 to simbolize 50 cents
+    CALL Add_Money_Pepe_Ticket  ;Call rotine to jump to the correct station screen
+
+
+Add_Money_Pepe_Ticket: 
+    MOV R6, [R9]                    ;Mov the balance of the ticket to R6
+    ADD R6, R5                      ;Sum the value to add to the current balance
+    MOV [R9], R6                    ;Update the value on memory
+    CALL Intermediate1_Main_Menu    ;Call the main menu to go back to the beggining
+    ;Present message the the recharge was sucessfull
 
 
 Clean_Inserted_Memory:
