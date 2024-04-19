@@ -1,5 +1,10 @@
 ; Input peripherals
 IN_PER               EQU 40H
+TICKET_NUMBER_1      EQU 10H
+TICKET_NUMBER_2      EQU 20H
+TICKET_NUMBER_3      EQU 30H
+TICKET_NUMBER_4      EQU 50H
+
 
 ; Output peripherals
 DISPLAY_BEGIN        EQU 60H
@@ -20,6 +25,8 @@ Ticket_number_dozens EQU    132     ;Third digit of the ticket number
 Ticket_number_units EQU     133     ;Fourth digit of the ticket number
 Change_Ticket_Euro    EQU     153     ;Euro digit of the change
 Change_Ticket_Cent    EQU     155     ;First cent digit of the change
+Balance_Pepe_Euros   EQU  82H        ;Display position of the pepe balance
+Balance_Pepe_Cents   EQU  84H        ;Display position of the cents balance
 
 
 ; Constants
@@ -170,10 +177,14 @@ Main_Menu_Selection:
     CMP R1, 1                       ;Compares R1 with the value 1
     JEQ Buy_Pepe_Screen             ;Call rotine to handle the buy option
     CMP R1, 2                       ;Compares R1 with the value 2
-    ;JEQ UseCard                          
+    JEQ Intermediate1_Use_Card      ;Call use Card                          
     CMP R1, 3                       ;Compares R1 with the value 3
     ;JEQ Stock
     JMP Main_Menu_Selection         ;In case option is invalid or nor selected, repeat rotine
+
+
+Intermediate1_Use_Card:
+    CALL Use_Card_Screen            ;Call Use_Card
 
 
 Buy_Pepe_Screen:
@@ -341,6 +352,7 @@ Intermediate1_Main_Menu:
     CALL Main_Menu_Screen           ;Call Main_Menu_Selection
 
 
+
 Buy_Pepe_Ticket:
     MOV R4, Inserted_money          ;Address of the memory that holds the inserted money
     MOV R5, [R4]                    ;Pass the inserted memory to R5
@@ -432,6 +444,94 @@ Present_Pepe:
     JEQ Intermediate1_Main_Menu     ;Go to the main menu
     CALL Present_Pepe               ;In case no option is choosen repeat routine
 
+
+Use_Card_Screen:
+    MOV R2, IntroducePepeMenu       ;Moves to R2 the IntroducePepeMenu address
+    CALL SetupScreen                ;Updates the screen
+Use_Card:
+    CALL Clean_Peripherals          ;Call rotine to clean peripherals
+    MOV R0, IN_PER                  ;Loads input peripheral address to R0
+    MOVB R1, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
+    CMP R1, 1                       ;Compares R1 with the value 1
+    JEQ Continue_Pepe               ;Go to the main menu
+    CMP R1, 5                       ;Compares R1 with the value 1
+    JEQ Intermediate1_Main_Menu     ;Go to the main menu
+    CALL Use_Card                   ;In case no option is choosen repeat routine
+    ;Fazer contas para ir para o primeiro endereço desse PEPE
+    ;Verificar que esse PEPE existe (se número do bilhete é diferente de 0)
+    ;Se exisitr apresentar o bilhete, caso não apresentar mensagem de erro
+
+Continue_Pepe:
+    MOV R0, TICKET_NUMBER_1         ;Loads address of first digit into R0
+    MOVB R3, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
+    MOV R0, TICKET_NUMBER_2         ;Loads address of first digit into R0
+    MOVB R4, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
+    MOV R0, TICKET_NUMBER_3         ;Loads address of first digit into R0
+    MOVB R5, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
+    MOV R0, TICKET_NUMBER_4         ;Loads address of first digit into R0
+    MOVB R6, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
+    MOV R7, 1000                    ;Move 1000 to R7 to get the correct ticket number
+    MUL R3, R7                      ;Get the 1000's number
+    MOV R7, 100                     ;Move 100 to R7 to get the correct ticket number
+    MUL R4, R7                      ;Get the 100's number
+    MOV R7, 10                      ;Move 10 to R7 to get the correct ticket number
+    MUL R5, R7                      ;Get the 10's number
+    ADD R3, R4                      ;Add the thousands to the hundreds
+    ADD R3, R5                      ;Add the value to the dozens
+    ADD R3, R6                      ;Add the value to the units
+    MOV R4, Pepe_Tickets_Created    ;Address that contains the number of Pepe Tickets created
+    MOV R5, [R4]                    ;Mov to R5 the number of PEPE ticktets created
+    CMP R5, R3                      ;See if the number is valid
+    JLT Use_Card_Screen             ;In case the number is invalid go back
+    MOV R5, 0                       ;To compare if the ticket number is not 0
+    CMP R5, R3                       ;Compare 0 and R3
+    JEQ Use_Card_Screen             ;Go back to the input in case the ticket number is 0
+Get_Balance_Pepe_Ticket:
+    MOV R7, 1                       ;To subtract one from the number of tickets to get the correct memory address
+    SUB R3, R7                      ;Do the subtraction
+    MOV R5, Display_constant        ;The display constant to be added
+    MOV R9, Pepe_Interval           ;The interval between each tickets memory
+    MUL R3, R9                      ;Multiply the number of tickets by the interval
+    MOV R9, Pepe_Number             ;Pass the address of the first ticket memory to R9
+    ADD R9, R3                      ;Get the address to start modifying in R9
+    MOV R7, 10H                     ;To go to the balance
+    ADD R9, R7                      ;Pass to the memory address that contains the balance
+    MOV R5, [R9]                    ;Get the balance of the ticket to R5
+Accepted_Ticket_Screen:
+    MOV R2, PepeMenu                ;Moves to R2 the PepeMenu address
+    CALL SetupScreen                ;Updates the screen
+Update_Change_Screen:
+    MOV R7, 100                     ;Put the value 100 in R7 to be used in separating the euros from cents
+    MOV R6, R5                      ;Make a copy of the change to R6
+    DIV R6, R7                      ;Get the value in euros for the change
+    MOV R7, Display_constant        ;Move the display constant to be added to R7
+    ADD R6, R7                      ;Apply the constant to R6 so the value can be displayed
+    MOV R8, Balance_Pepe_Euros      ;Display position to put the change in euros
+    MOVB [R8], R6                    ;Change the value on screen
+    MOV R7, 100                     ;Put the value 100 in R7 to be used in separating the euros from cents
+    MOV R6, R5                      ;Make a copy of the change to R6
+    MOD R6, R7                      ;Get the value in cents for the change
+    MOV R7, 10                      ;Put 10 in R7 to get the first digit of the cents
+    DIV R6, R7                      ;Get the first digit of the cents
+    MOV R7, Display_constant        ;Move the display constant to be added to R7
+    ADD R6, R7                      ;Apply the constant to R6 so the value can be displayed
+    MOV R8, Balance_Pepe_Cents      ;Get the memory address of the screen position for the cents
+    MOVB [R8], R6                    ;Update the value on screen
+Accepted_Ticket:
+    CALL Clean_Peripherals          ;Call rotine to clean peripherals
+    MOV R0, IN_PER                  ;Loads input peripheral address to R0
+    MOVB R1, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
+    CMP R1, 1                       ;Compares R1 with the value 1
+    ;JEQ Comprar                    ;Go to the main menu
+    CMP R1, 5                       ;Compares R1 with the value 1
+    ;JEQ Recarregar                 ;Go to the main menu
+    CALL Accepted_Ticket            ;In case no option is choosen repeat routine
+
+Buy_With_Pepe_Card:
+    ;Apresentar menu das estações para comprar com o cartão pepe
+    ;Verificar se possui saldo suficiente
+    ;Descontar se sim, e apresentar mensagem de compra
+    ;Se não apresentar mensagem de erro, para voltar atras ou cancelar
 
 
 Clean_Inserted_Memory:
