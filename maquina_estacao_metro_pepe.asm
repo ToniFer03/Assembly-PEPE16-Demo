@@ -18,6 +18,8 @@ Ticket_number_thousands EQU 130     ;First digit of the ticket number
 Ticket_number_hundreds EQU  131     ;Second digit of the ticket number
 Ticket_number_dozens EQU    132     ;Third digit of the ticket number
 Ticket_number_units EQU     133     ;Fourth digit of the ticket number
+Change_Ticket_Euro    EQU     153     ;Euro digit of the change
+Change_Ticket_Cent    EQU     155     ;First cent digit of the change
 
 
 ; Constants
@@ -41,7 +43,7 @@ Inserted_money       EQU 8000H      ;Hold the current money inserted on memory
 Price_pay            EQU 8010H      ;Hold the price to be payed
 
 ; PEPE Ticket Base Memories
-Pepe_Tickets_Created EQU 8090H      ;Will hold the number of tickets that have been created
+Pepe_Tickets_Created EQU 8FF0H      ;Will hold the number of tickets that have been created
 Pepe_Number          EQU 9000H      ;Will hold the number of the pepe code
 Pepe_Balace          EQU 9010H      ;Will hold the charge of the PEPE ticket
 Pepe_Interval        EQU 20H        ;The difference between memory address of 2 pepe tickets  
@@ -283,7 +285,7 @@ Move_Correct_Station:
     CMP R3, Station3_number         ;Compare the value in R3 with the number for station 3 
     JEQ Station3Screen              ;If they are equal, call the function to present the price of station3
     CMP R3, Station4_number         ;Compare the value in R3 with the number for station 4 
-    JEQ Station3Screen              ;If they are equal, call the function to present the price of station4
+    JEQ Station4Screen              ;If they are equal, call the function to present the price of station4
     CMP R3, Station5_number         ;Compare the value in R3 with the number for station 5 
     JEQ Station3Screen              ;If they are equal, call the function to present the price of station5
 
@@ -380,31 +382,55 @@ Present_Pepe_Screen:
     MOV R2, Pepe_Ticket_Created     ;Moves to R2 the ChooseMoneyMenu address
     CALL SetupScreen                ;Updates the screen
 UpdateTicketNumber:
+    MOV R4, Display_constant        ;Display constant to display the correct value
     MOV R1, 10                      ;Value to divide by
     MOV R8, R7                      ;Make a copy of the ticket number
     MOD R8, R1                      ;Divide by 10 and get the rest to have the first digit
+    ADD R8, R4                      ;Apply the display constant
     MOV R10, Ticket_number_units    ;Display position of the first digit of the ticket number
-    MOV [R10], R8                   ;Update the value on the screen
+    MOVB [R10], R8                  ;Update the value on the screen
     DIV R7, R1                      ;Take out the first digit
     MOV R8, R7                      ;Make a copy of the ticket number
     DIV R8, R1                      ;Divide by 100 to get the second digit
+    ADD R8, R4                      ;Apply the display constant
     MOV R10, Ticket_number_dozens   ;Display position of the first digit of the ticket number
-    MOV [R10], R8                   ;Update the value on the screen
+    MOVB [R10], R8                  ;Update the value on the screen
     DIV R7, R1                      ;Take out the first digit
     MOV R8, R7                      ;Make a copy of the ticket number
     DIV R8, R1                      ;Divide by 10 to get the third digit
+    ADD R8, R4                      ;Apply the display constant
     MOV R10, Ticket_number_hundreds ;Display position of the first digit of the ticket number
-    MOV [R10], R8                   ;Update the value on the screen
+    MOVB [R10], R8                  ;Update the value on the screen
     DIV R7, R1                      ;Take out the first digit
     MOV R8, R7                      ;Make a copy of the ticket number
     DIV R8, R1                      ;Divide by 1 to get the first digit
+    ADD R8, R4                      ;Apply the display constant
     MOV R10, Ticket_number_thousands;Display position of the first digit of the ticket number
-    MOV [R10], R8                   ;Update the value on the screen
+    MOVB [R10], R8                  ;Update the value on the screen
 UpdateChange:
-    ;Use the same tactic used before to get the price from the number
+    MOV R7, 100                     ;Put the value 100 in R7 to be used in separating the euros from cents
+    MOV R6, R5                      ;Make a copy of the change to R6
+    DIV R6, R7                      ;Get the value in euros for the change
+    MOV R7, Display_constant        ;Move the display constant to be added to R7
+    ADD R6, R7                      ;Apply the constant to R6 so the value can be displayed
+    MOV R8, Change_Ticket_Euro      ;Display position to put the change in euros
+    MOVB [R8], R6                    ;Change the value on screen
+    MOV R7, 100                     ;Put the value 100 in R7 to be used in separating the euros from cents
+    MOV R6, R5                      ;Make a copy of the change to R6
+    MOD R6, R7                      ;Get the value in cents for the change
+    MOV R7, 10                      ;Put 10 in R7 to get the first digit of the cents
+    DIV R6, R7                      ;Get the first digit of the cents
+    MOV R7, Display_constant        ;Move the display constant to be added to R7
+    ADD R6, R7                      ;Apply the constant to R6 so the value can be displayed
+    MOV R8, Change_Ticket_Cent      ;Get the memory address of the screen position for the cents
+    MOVB [R8], R6                    ;Update the value on screen
 Present_Pepe:
-    ;Logic for the menu of the Pepe
-    CALL Intermediate1_Main_Menu
+    CALL Clean_Peripherals          ;Call rotine to clean peripherals
+    MOV R0, IN_PER                  ;Loads input peripheral address to R0
+    MOVB R1, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
+    CMP R1, 1                       ;Compares R1 with the value 1
+    JEQ Intermediate1_Main_Menu     ;Go to the main menu
+    CALL Present_Pepe               ;In case no option is choosen repeat routine
 
 
 
