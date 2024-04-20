@@ -23,10 +23,12 @@ Ticket_number_thousands EQU 130     ;First digit of the ticket number
 Ticket_number_hundreds EQU  131     ;Second digit of the ticket number
 Ticket_number_dozens EQU    132     ;Third digit of the ticket number
 Ticket_number_units EQU     133     ;Fourth digit of the ticket number
-Change_Ticket_Euro    EQU     153     ;Euro digit of the change
-Change_Ticket_Cent    EQU     155     ;First cent digit of the change
+Change_Ticket_Euro    EQU     153   ;Euro digit of the change
+Change_Ticket_Cent    EQU     155   ;First cent digit of the change
 Balance_Pepe_Euros   EQU  82H        ;Display position of the pepe balance
 Balance_Pepe_Cents   EQU  84H        ;Display position of the cents balance
+Pepe_New_Balance_Euro EQU  0A07H     ;Display position that has the new balance in euros on the screen
+Pepe_New_Balance_Cents EQU 0A09H     ;Display position that has the new balance in cents on the screen
 
 
 ; Constants
@@ -150,6 +152,16 @@ Not_Enough_Money_Message:
 	String "----------------"
 	String "1)Voltar atras  "
     String "2)Cancelar      "
+
+Place 680H
+Pepe_Ticket_Buy_Success:
+    String "----------------"
+    String "Compra efetuada "
+    String "com Sucesso     "
+    String "                "
+    String "Saldo: 0.00     "
+    String "1- Continuar    "
+    String "----------------"
 
 
 ;Setup Instructions
@@ -522,10 +534,14 @@ Accepted_Ticket:
     MOV R0, IN_PER                  ;Loads input peripheral address to R0
     MOVB R1, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
     CMP R1, 1                       ;Compares R1 with the value 1
-    ;JEQ Comprar                    ;Go to the main menu
+    JEQ Buy_With_Pepe_Card_Screen   ;Go to the Buy_With_Pepe_Card_Screen
     CMP R1, 2                       ;Compares R1 with the value 2
-    JEQ Recharge_Pepe_Screen        ;Go to the main menu
+    JEQ Recharge_Pepe_Card_Screen   ;Go to the Recharge_Pepe_Card_Screen
     CALL Accepted_Ticket            ;In case no option is choosen repeat routine
+
+
+Intermediate2_Main_Menu:
+    CALL Intermediate1_Main_Menu    ;Call the main menu
 
 
 Buy_With_Pepe_Card_Screen:
@@ -535,12 +551,96 @@ Buy_With_Pepe_Card:
     CALL Clean_Peripherals          ;Call rotine to clean peripherals
     MOV R0, IN_PER                  ;Loads input peripheral address to R0
     MOVB R1, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
+    CMP R1, 1                       ;Compares R1 with the value 1
+    JEQ Get_Station2_Price          ;Calls logic to add 5 euros
+    CMP R1, 2                       ;Compares R1 with the value 2
+    JEQ Get_Station3_Price          ;Call the logic to add 2 euros
+    CMP R1, 3                       ;Compares R1 with the value 3
+    JEQ Get_Station4_Price          ;Call the logic to add 1 euro
+    CMP R1, 4                       ;Compares R1 with the value 3
+    JEQ Get_Station5_Price          ;Call the logic to add 50 cents
+    CMP R1, 5                       ;Compares R1 with the value 3
+    JEQ Add_20_cents_Pepe           ;Call the logic to add 20 cents
+    JMP Buy_With_Pepe_Card          ;In case the option is invalid or not selected, repeat rotine
     ;Apresentar menu das estações para comprar com o cartão pepe
     ;Verificar se possui saldo suficiente
     ;Descontar se sim, e apresentar mensagem de compra
     ;Se não apresentar mensagem de erro, para voltar atras ou cancelar
 
+Get_Station2_Price:
+    MOV R5, Station2_price          ;Get the station2 price
+    CALL Verify_Enough_Money
 
+Get_Station3_Price:
+    MOV R5, Station3_price          ;Get the station2 price
+    CALL Verify_Enough_Money
+
+
+Get_Station4_Price:
+    MOV R5, Station4_price          ;Get the station2 price
+    CALL Verify_Enough_Money
+
+
+Get_Station5_Price:
+    MOV R5, Station5_price          ;Get the station2 price
+    CALL Verify_Enough_Money
+
+
+Verify_Enough_Money:
+    MOV R6, [R9]                    ;Move pepe balance to R6
+    CMP R6, R5                      ;Compara the balance with the price
+    JGE Enough_Money_Pepe_Screen    ;In case the balance is enough proceed to buy
+Not_Enough_Money_Pepe_Screen:
+    MOV R2, Not_Enough_Money_Message;Moves to R2 the Not_Enough_Money_Message address
+    CALL SetupScreen                ;Updates the screen
+Not_Enough_Money_Pepe:
+    CALL Clean_Peripherals          ;Call rotine to clean peripherals
+    MOV R0, IN_PER                  ;Loads input peripheral address to R0
+    MOVB R1, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
+    CMP R1, 1                       ;Compares R1 with the value 1
+    JEQ Use_Card_Screen             ;Call Use_Card_Screen
+    CMP R1, 2                       ;Compares R1 with the value 2
+    JEQ Intermediate2_Main_Menu     ;Call Main_Menu_Selection
+    JMP Not_Enough_Money_Pepe       ;In case the option is invalid or not selected, repeat rotine
+
+
+Enough_Money_Pepe_Screen:
+    MOV R2, Pepe_Ticket_Buy_Success ;Moves to R2 the Pepe_Ticket_Buy_Success address
+    CALL SetupScreen                ;Updates the screen
+Update_Balance_Ticket:
+    MOV R6, [R9]                    ;Get the balance of the ticket
+    SUB R6, R5                      ;Subtract the price of the station
+    MOV [R9], R6                    ;Update on memory the balance of the ticket
+    MOV R5, [R9]                    ;Move the ticket balance to R5
+Present_Balance_Screen:
+    MOV R7, 100                     ;Put the value 100 in R7 to be used in separating the euros from cents
+    MOV R6, R5                      ;Make a copy of the change to R6
+    DIV R6, R7                      ;Get the value in euros for the change
+    MOV R7, Display_constant        ;Move the display constant to be added to R7
+    ADD R6, R7                      ;Apply the constant to R6 so the value can be displayed
+    MOV R8, Pepe_New_Balance_Euro   ;Display position to put the change in euros
+    MOVB [R8], R6                    ;Change the value on screen
+    MOV R7, 100                     ;Put the value 100 in R7 to be used in separating the euros from cents
+    MOV R6, R5                      ;Make a copy of the change to R6
+    MOD R6, R7                      ;Get the value in cents for the change
+    MOV R7, 10                      ;Put 10 in R7 to get the first digit of the cents
+    DIV R6, R7                      ;Get the first digit of the cents
+    MOV R7, Display_constant        ;Move the display constant to be added to R7
+    ADD R6, R7                      ;Apply the constant to R6 so the value can be displayed
+    MOV R8, Pepe_New_Balance_Cents  ;Get the memory address of the screen position for the cents
+    MOVB [R8], R6                   ;Update the value on screen
+Enough_Money_Pepe:
+    CALL Clean_Peripherals          ;Call rotine to clean peripherals
+    MOV R0, IN_PER                  ;Loads input peripheral address to R0
+    MOVB R1, [R0]                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
+    CMP R1, 1                       ;Compares R1 with the value 1
+    JEQ Intermediate2_Main_Menu     ;Call Use_Card_Screen
+    CALL Enough_Money_Pepe          ;In case there no option is choosen
+
+
+Recharge_Pepe_Card_Screen:
+    MOV R2, ChooseMoneyMenu         ;Load ChooseMoneyMenu adress into R2
+    CALL SetupScreen                ;Call rotine to show the updated screen
 Recharge_Pepe_Card:
     CALL Clean_Peripherals          ;Call rotine to clean peripherals
     MOV R0, IN_PER                  ;Loads input peripheral address to R0
