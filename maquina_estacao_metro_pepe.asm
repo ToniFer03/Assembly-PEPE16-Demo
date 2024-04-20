@@ -17,7 +17,7 @@ Display_Position_Inserted_Euro              EQU 008CH   ;Display position of the
 Display_Position_Inserted_Cent              EQU 008EH   ;Display position of the inserted cent first digit
 Display_Position_Price_Euro                 EQU 009CH   ;Display position of the price to be paid euros
 Display_Position_Price_Cent                 EQU 009EH   ;Display position of the price to be paid cents
-Display_Position_Ticket_Number_Thousand    EQU 0082H   ;First digit of the ticket number
+Display_Position_Ticket_Number_Thousand     EQU 0082H   ;First digit of the ticket number
 Display_Position_Ticket_Number_Hundreds     EQU 0083H   ;Second digit of the ticket number
 Display_Position_Ticket_Number_Dozens       EQU 0084H   ;Third digit of the ticket number
 Display_Position_Ticket_Number_Units        EQU 0085H   ;Fourth digit of the ticket number
@@ -156,6 +156,16 @@ Pepe_Ticket_Buy_Success:
     String "----------------"
     String "Compra efetuada "
     String "com Sucesso     "
+    String "                "
+    String "Saldo: 0.00     "
+    String "1- Continuar    "
+    String "----------------"
+
+Place 700H
+Pepe_Ticket_Recharge_Success:
+    String "----------------"
+    String "Carregamento do "
+    String "ticket validado "
     String "                "
     String "Saldo: 0.00     "
     String "1- Continuar    "
@@ -566,8 +576,19 @@ Add_Money_Pepe_Ticket:
     MOV R6, [R9]                                    ;Mov the current balance of the ticket to R6
     ADD R6, R5                                      ;Sum the value to add to the current balance
     MOV [R9], R6                                    ;Update the value on memory
-    CALL Intermediate1_Main_Menu                    ;Call the main menu to go back to the beggining
-    ;Present message the the recharge was sucessfull
+Recharge_Ticket_Success_Screen:
+    MOV R2, Pepe_Ticket_Recharge_Success            ;Load Pepe_Ticket_Recharge_Success adress into R2
+    CALL Setup_Show_Screen                          ;Call rotine to show the updated screen
+Update_Recharge_Ticket_Balance_Screen:
+    MOV R1, Display_Position_Ticket_New_Balance_Euro;Display position of the euro digit of the ticket balance   
+    MOV R4, Display_Position_Ticket_New_Balance_Cent;Display position of the first digit of cents on the ticket balance
+    MOV R5, [R9]                                    ;Move the ticket balance to R5
+    CALL Update_Money_Value_Screen                  ;Call routine responsible for separating the value and updating the value on screen
+Recharge_Ticket_Success:
+    CALL Read_Main_Input_Peripheric                 ;Call routine to read the input and pass it to R1
+    CMP R1, 1                                       ;Compares R1 with the value 1
+    JEQ Intermediate2_Main_Menu                     ;Call Intermediate2_Main_Menu
+    CALL Recharge_Ticket_Success                    ;In case the option is invalid or not selected, repeat rotine
 
 
 
