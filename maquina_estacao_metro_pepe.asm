@@ -27,6 +27,10 @@ Display_Position_Ticket_Balance_Euro        EQU 0082H   ;Display position of the
 Display_Position_Ticket_Balance_Cent        EQU 0084H   ;Display position of the cents balance
 Display_Position_Ticket_New_Balance_Euro    EQU 00A7H   ;Display position that has the new balance in euros on the screen
 Display_Position_Ticket_New_Balance_Cent    EQU 00A9H   ;Display position that has the new balance in cents on the screen
+Display_Money_Stock_1                       EQU 0084H   ;Display position for the last digit of the stock of money
+Display_Money_Stock_2                       EQU 00A4H   ;Display position for the last digit of the stock of money
+Display_Money_Stock_3                       EQU 00C4H   ;Display position for the last digit of the stock of money
+
 
 
 ; Constants
@@ -37,10 +41,10 @@ Station2_number                             EQU 2       ;Number of the station
 Station2_price                              EQU 150     ;Price of the ticket in cents
 
 Station3_number                             EQU 3       ;Number of the station
-Station3_price                              EQU 250     ;Price of the ticket in cents
+Station3_price                              EQU 230     ;Price of the ticket in cents
 
 Station4_number                             EQU 4       ;Number of the station
-Station4_price                              EQU 350     ;Price of the ticket in cents
+Station4_price                              EQU 380     ;Price of the ticket in cents
 
 Station5_number                             EQU 5       ;Number of the station
 Station5_price                              EQU 550     ;Price of the ticket in cents
@@ -48,6 +52,13 @@ Station5_price                              EQU 550     ;Price of the ticket in 
 ; Variables
 Memory_Address_Inserted_Memory              EQU 8000H   ;Hold the current money inserted on memory
 Memory_Address_Price_Pay                    EQU 8010H   ;Hold the price to be payed
+euro_5_stock                                EQU 8020H   ;Hold the number of 5 euro notes
+euro_2_stock                                EQU 8030H   ;Hold the number of 2 euro coins
+euro_1_stock                                EQU 8040H   ;Hold the number of 1 euro coins
+cent_50_stock                               EQU 8050H   ;Hold the number of 50 euro coins
+cent_20_stock                               EQU 8060H   ;Hold the number of 20 euro coins
+cent_10_stock                               EQU 8070H   ;Hold the number of 10 euro coins
+
 
 ; PEPE Ticket Base Memories
 Memory_Address_Number_Tickets_Created       EQU 8FF0H   ;Will hold the number of tickets that have been created
@@ -74,8 +85,8 @@ Choose_Station_Menu:
     String "  Menu Estacao  "
     String "                "
     String "1-Estacao2: 1.50"
-    String "2-Estacao3: 2.50"
-    String "3-Estacao4: 3.50"
+    String "2-Estacao3: 2.30"
+    String "3-Estacao4: 3.80"
     String "4-Estacao5: 5.50"
     String "5-Cancelar      "
     String "----------------"
@@ -109,8 +120,8 @@ Ticket_Menu:
     String "----------------"
 
 Place 480H
-Machine_Coin_Stock_Menu:
-    String "---Stock  3/4---"
+Machine_Coin_Stock_Menu2:
+    String "---Stock  2/3---"
     String "Moeda de 50 cent"
     String " XXXX           "
     String "Moeda de 20 cent"
@@ -181,6 +192,24 @@ No_Ticket_With_That_Number:
 	String "1)Voltar atras  "
     String "2)Cancelar      "
 
+Place 800H
+Machine_Coin_Stock_Menu1:
+    String "---Stock  1/3---"
+    String "Nota de 5 eur   "
+    String " XXXX           "
+    String "Moeda de 2 eur  "
+    String " XXXX           "
+    String "Moeda de 1 eur  "
+    String " XXXX           "
+    String "1- Continuar    "
+    String "----------------"
+
+Place 880H
+Machine_Coin_Stock_Menu3:
+    String "---Stock  3/3---"
+    String "1- Voltar Inicio"
+    String "----------------"
+
 
 ;Setup Instructions
 Place 0H
@@ -206,12 +235,15 @@ Main_Menu_Selection:
     CMP R1, 2                                       ;Compares R1 with the value 2
     JEQ Intermediate1_Use_Card                      ;Call routine to handle the use card option                         
     CMP R1, 3                                       ;Compares R1 with the value 3
-    ;JEQ Stock
+    JEQ Intermediate2_Stock                         ;Call routine to show the stock of money on the machine
     JMP Main_Menu_Selection                         ;In case option is invalid or nor selected, repeat rotine
 
 ;Use_Card_screen, appears out of bounds when using jumps so this is a work around
 Intermediate1_Use_Card:
     CALL Use_Card_Screen                            ;Call routine to handle the use card option
+
+Intermediate2_Stock:
+    CALL Stock_Screen_1                             ;Call routine to show the stock of coins
 
 Buy_Ticket_Screen:
     MOV R2, Choose_Station_Menu                     ;Moves to R2 the Choose_Station_Menu address
@@ -315,24 +347,33 @@ Insert_Money:
 
 Add_5_Euros:
     MOV R5, 500                                     ;Mov the value 500 to R5
+    MOV R0, euro_5_stock                            ;Address where the stock of 5 euro notes is stored
     CALL Update_Inserted_Value_In_Memory            ;Call rotine to jump to the correct station screen
 Add_2_Euros:
     MOV R5, 200                                     ;Mov the value 200 to R5
+    MOV R0, euro_2_stock                            ;Address where the stock of 2 euro coins is stored
     CALL Update_Inserted_Value_In_Memory            ;Call rotine to jump to the correct station screen
 Add_1_Euro:
     MOV R5, 100                                     ;Mov the value 100 to R5
+    MOV R0, euro_1_stock                            ;Address where the stock of 1 euro coins is stored
     CALL Update_Inserted_Value_In_Memory            ;Call rotine to jump to the correct station screen
 Add_50_cents:
     MOV R5, 50                                      ;Put 50 in R5 to simbolize 50 cents
+    MOV R0, cent_50_stock                           ;Address where the stock of 50 cent coins is stored
     CALL Update_Inserted_Value_In_Memory            ;Call rotine to jump to the correct station screen
 Add_20_cents:
     MOV R5, 20                                      ;Put 20 in R5 to simbolize 20 cents
+    MOV R0, cent_20_stock                           ;Address where the stock of 20 cent coins is stored
     CALL Update_Inserted_Value_In_Memory            ;Call rotine to jump to the correct station screen
 Add_10_cents:
     MOV R5, 10                                      ;Put 10 in R5 to simbolize 10 cents
+    MOV R0, cent_10_stock                           ;Address where the stock of 10 cent coins is stored
     CALL Update_Inserted_Value_In_Memory            ;Call rotine to jump to the correct station screen
 
 Update_Inserted_Value_In_Memory:
+    MOV R4, [R0]                                    ;Put the number of stock of the type of payment method choosen on R4
+    ADD R4, 1                                       ;Add 1 to it
+    MOV [R0], R4                                    ;Update the stock on memory
     MOV R4, Memory_Address_Inserted_Memory          ;Memory address that holds how many cents have been added
     MOV R6, [R4]                                    ;Pass the cents already incerted to R6
     ADD R5, R6                                      ;Add the value already incerted to the value beign incerted 
@@ -554,6 +595,9 @@ Enough_Money_Pepe:
     CALL Enough_Money_Pepe                          ;In case the option is invalid or not selected, repeat rotine
 
 
+Intermediate3_Main_Menu:
+    CALL Intermediate2_Main_Menu                    ;Call main menu
+
 
 Recharge_Pepe_Card_Screen:
     MOV R2, Choose_Inserted_Value_Menu              ;Load Choose_Inserted_Value_Menu adress into R2
@@ -576,24 +620,33 @@ Recharge_Pepe_Card:
 
 Add_5_Euros_Pepe:
     MOV R5, 500                                     ;Mov the value 500 to R5
+    MOV R0, euro_5_stock                            ;Address where the stock of 5 euro notes is stored
     CALL Add_Money_Pepe_Ticket                      ;Call rotine to add that quantity to the ticket in question
 Add_2_Euros_Pepe:
     MOV R5, 200                                     ;Mov the value 200 to R5
+    MOV R0, euro_2_stock                            ;Address where the stock of 2 euro coins is stored
     CALL Add_Money_Pepe_Ticket                      ;Call rotine to add that quantity to the ticket in question
 Add_1_Euro_Pepe:
     MOV R5, 100                                     ;Mov the value 100 to R5
+    MOV R0, euro_1_stock                            ;Address where the stock of 1 euro coins is stored
     CALL Add_Money_Pepe_Ticket                      ;Call rotine to add that quantity to the ticket in question
 Add_50_cents_Pepe:
     MOV R5, 50                                      ;Put 50 in R5 to simbolize 50 cents
+    MOV R0, cent_50_stock                           ;Address where the stock of 50 cent coins is stored
     CALL Add_Money_Pepe_Ticket                      ;Call rotine to add that quantity to the ticket in question
 Add_20_cents_Pepe:
     MOV R5, 20                                      ;Put 20 in R5 to simbolize 20 cents
+    MOV R0, cent_20_stock                           ;Address where the stock of 20 cent coins is stored
     CALL Add_Money_Pepe_Ticket                      ;Call rotine to add that quantity to the ticket in question
 Add_10_cents_Pepe:
     MOV R5, 10                                      ;Put 10 in R5 to simbolize 10 cents
+    MOV R0, cent_10_stock                           ;Address where the stock of 10 cent coins is stored
     CALL Add_Money_Pepe_Ticket                      ;Call rotine to add that quantity to the ticket in question
 
 Add_Money_Pepe_Ticket: 
+    MOV R4, [R0]                                    ;Put the number of stock of the type of payment method choosen on R4
+    ADD R4, 1                                       ;Add 1 to it
+    MOV [R0], R4                                    ;Update the stock on memory
     MOV R6, [R9]                                    ;Mov the current balance of the ticket to R6
     ADD R6, R5                                      ;Sum the value to add to the current balance
     MOV [R9], R6                                    ;Update the value on memory
@@ -611,6 +664,78 @@ Recharge_Ticket_Success:
     JEQ Intermediate2_Main_Menu                     ;Call Intermediate2_Main_Menu
     CALL Recharge_Ticket_Success                    ;In case the option is invalid or not selected, repeat rotine
 
+
+Stock_Screen_1:
+    MOV R2, Machine_Coin_Stock_Menu1                ;Load Machine_Coin_Stock_Menu1 adress into R2
+    CALL Setup_Show_Screen                          ;Call rotine to show the updated screen
+Update_Screen_Stock_1:
+    MOV R1, 10                                      ;Value to divide by, to get each digit
+    MOV R2, 1                                       ;To substract and get the position before on the screen (goes from last to first)
+    MOV R4, Display_Constant                        ;Display constant that when added displays the correct value on screen
+    MOV R5, euro_5_stock                            ;The address that contains the stock of 5 euro notes
+    MOV R7, [R5]                                    ;Put the amout of 5 euro notes on R7
+    MOV R10, Display_Money_Stock_1                  ;Last digit position
+    CALL Aux_Update_Screen_Stock
+    MOV R5, euro_2_stock                            ;The address that contains the stock of 5 euro notes
+    MOV R7, [R5]                                    ;Put the amout of 5 euro notes on R7
+    MOV R10, Display_Money_Stock_2                  ;Last digit position
+    CALL Aux_Update_Screen_Stock
+    MOV R5, euro_1_stock                            ;The address that contains the stock of 5 euro notes
+    MOV R7, [R5]                                    ;Put the amout of 5 euro notes on R7
+    MOV R10, Display_Money_Stock_3                  ;Last digit position
+    CALL Aux_Update_Screen_Stock
+Stock_1:
+    CALL Read_Main_Input_Peripheric                 ;Call routine to read the input and pass it to R1
+    CMP R1, 1                                       ;Compares R1 with the value 1
+    JNE Stock_1                                     ;Continue showing the screen unless continue is pressed
+Stock_Screen_2:
+    MOV R2, Machine_Coin_Stock_Menu2                ;Load Machine_Coin_Stock_Menu2 adress into R2
+    CALL Setup_Show_Screen                          ;Call rotine to show the updated screen
+Update_Screen_Stock_2:
+    MOV R1, 10                                      ;Value to divide by, to get each digit
+    MOV R2, 1                                       ;To substract and get the position before on the screen (goes from last to first)
+    MOV R4, Display_Constant                        ;Display constant that when added displays the correct value on screen
+    MOV R5, cent_50_stock                           ;The address that contains the stock of 50 cent coins
+    MOV R7, [R5]                                    ;Put the amout of 50 cent coins on R7
+    MOV R10, Display_Money_Stock_1                  ;Last digit position
+    CALL Aux_Update_Screen_Stock
+    MOV R5, cent_20_stock                           ;The address that contains the stock of 20 cent coins
+    MOV R7, [R5]                                    ;Put the amout of 20 cent coins on R7
+    MOV R10, Display_Money_Stock_2                  ;Last digit position
+    CALL Aux_Update_Screen_Stock
+    MOV R5, cent_10_stock                           ;The address that contains the stock of 10 cent coins
+    MOV R7, [R5]                                    ;Put the amout of 10 cent coins on R7
+    MOV R10, Display_Money_Stock_3                  ;Last digit position
+    CALL Aux_Update_Screen_Stock
+Stock_2:
+    CALL Read_Main_Input_Peripheric                 ;Call routine to read the input and pass it to R1
+    CMP R1, 1                                       ;Compares R1 with the value 1
+    JNE Stock_2                                     ;Continue showing the screen unless continue is pressed
+Stock_Screen_3:
+    MOV R2, Machine_Coin_Stock_Menu3                ;Load Machine_Coin_Stock_Menu3 adress into R2
+    CALL Setup_Show_Screen                          ;Call rotine to show the updated screen
+Stock_3:
+    CALL Read_Main_Input_Peripheric                 ;Call routine to read the input and pass it to R1
+    CMP R1, 1                                       ;Compares R1 with the value 1
+    JEQ Intermediate3_Main_Menu                     ;Go back to the main menu at the end
+    CALL Stock_3                                    ;In case the option is invalid or not selected, repeat rotine
+
+
+;Routine to update a single line of the stock of coins
+Aux_Update_Screen_Stock:
+    CALL Get_Ticket_Number_Apply_Constant           ;Routine that will update a digit on the screen
+    DIV R7, R1                                      ;Get the last digit of the number out
+    SUB R10, R2                                     ;Go to the screen position before the updated one
+    CALL Get_Ticket_Number_Apply_Constant           ;Routine that will update a digit on the screen
+    DIV R7, R1                                      ;Get the last digit of the number out
+    SUB R10, R2                                     ;Go to the screen position before the updated one
+    CALL Get_Ticket_Number_Apply_Constant           ;Routine that will update a digit on the screen
+    DIV R7, R1                                      ;Get the last digit of the number out
+    SUB R10, R2                                     ;Go to the screen position before the updated one
+    CALL Get_Ticket_Number_Apply_Constant           ;Routine that will update a digit on the screen
+    DIV R7, R1                                      ;Get the last digit of the number out
+    SUB R10, R2                                     ;Go to the screen position before the updated one
+    RET
 
 
 ;Routine responsible for reading the value on the main input peripheral and passing it to R1
@@ -638,12 +763,13 @@ Get_Correct_Ticket_Number:
     RET                                             ;Go back to the last instruction
 
 ;Routine responsible for getting the last digit of the ticket number, and updating the value on screen
-;R1 is 100
+;R1 is 10
 ;R4 is the display constant
+;R7 is the number to ge modified
 ;R10 is the address to be updated
 Get_Ticket_Number_Apply_Constant:
     MOV R8, R7                                      ;Make a copy of the ticket number
-    MOD R8, R1                                      ;Divide by 100 to get the second digit
+    MOD R8, R1                                      ;Divide by 10 to get the second digit
     ADD R8, R4                                      ;Apply the display constant
     MOVB [R10], R8                                  ;Update the value on the screen
     RET                                             ;Go back to the last routine
