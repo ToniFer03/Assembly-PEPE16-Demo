@@ -171,6 +171,16 @@ Pepe_Ticket_Recharge_Success:
     String "1- Continuar    "
     String "----------------"
 
+Place 780H
+No_Ticket_With_That_Number:
+    String "----------------"
+	String "  Nao existe    "
+	String "    ticket      "
+	String " com tal numero "
+	String "----------------"
+	String "1)Voltar atras  "
+    String "2)Cancelar      "
+
 
 ;Setup Instructions
 Place 0H
@@ -426,10 +436,10 @@ Continue_Ticket:
     MOV R4, Memory_Address_Number_Tickets_Created   ;Address that contains the number of Pepe Tickets created
     MOV R5, [R4]                                    ;Mov to R5 the number of PEPE ticktets created
     CMP R5, R3                                      ;See if the number is valid
-    JLT Use_Card_Screen                             ;In case the number is invalid go back
+    JLT No_Valid_Ticket_Number_Screen               ;In case the number is invalid present error message
     MOV R5, 0                                       ;To compare if the ticket number is not 0
     CMP R5, R3                                      ;Compare 0 and R3
-    JEQ Use_Card_Screen                             ;Go back to the input in case the ticket number is 0
+    JEQ No_Valid_Ticket_Number_Screen               ;In case ticket number is 0 present error message
 Get_Balance_Pepe_Ticket:
     MOV R7, 1                                       ;To subtract one from the number of tickets to get the correct memory address
     SUB R3, R7                                      ;Do the subtraction
@@ -462,6 +472,18 @@ Intermediate2_Main_Menu:
     CALL Intermediate1_Main_Menu                    ;Call the main menu
 
 
+No_Valid_Ticket_Number_Screen:
+    MOV R2, No_Ticket_With_That_Number              ;Moves to R2 the No_Ticket_With_That_Number address
+    CALL Setup_Show_Screen                          ;Updates the screen
+No_Valid_Ticket_Number:
+    CALL Read_Main_Input_Peripheric                 ;Routine to Read the input for the input peripheric and pass it to R1
+    CMP R1, 1                                       ;Compares R1 with the value 1
+    JEQ Use_Card_Screen                             ;Go back to insert another ticket number
+    CMP R1, 2                                       ;Compares R1 with the value 1
+    JEQ Intermediate2_Main_Menu                     ;Go to the main menu
+    CALL No_Valid_Ticket_Number                     ;In case no option is choosen repeat routine
+
+
 Buy_With_Pepe_Card_Screen:
     MOV R2, Choose_Station_Menu                     ;Moves to R2 the Choose_Station_Menu address
     CALL Setup_Show_Screen                          ;Updates the screen
@@ -490,7 +512,6 @@ Get_Station3_Price:
 Get_Station4_Price:
     MOV R5, Station4_price                          ;Move the station 2 price to R5
     CALL Verify_Enough_Money                        ;Call routine to verify the ticket has enough money to pay for that station
-
 
 Get_Station5_Price:
     MOV R5, Station5_price                          ;Move the station 2 price to R5
