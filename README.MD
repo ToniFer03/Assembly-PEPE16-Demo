@@ -93,10 +93,9 @@ The branch names must be short and explain its purpose, can't contain special ch
 and the "Step instruction" the first time you load the program and every time after you input into the input cedule.
 - On the "Memory Bank" window, the Row with Memory Adress 0050, the first cedule is the main input cedule you will
 write the option you want in here and press enter to interact with the program.
-- When asked for a ticket number the first collumn of memory addresses 0010, 0020, 0030, 0040 function as the inputs 
-for the ticket number. 
+- When asked for a ticket number the first collumn of memory addresses 0010, 0020, 0030, 0040 function as the inputs for the ticket number.  
 Example: Ticket number 2378 would be inputed as:
-2 in first collumn of memory address 0010;
-3 in first collumn of memory address 0020;
-7 in first collumn of memory address 0030;
-8 in first collumn of memory address 0040;
+    - 2 in first collumn of memory address 0010;
+    - 3 in first collumn of memory address 0020;
+    - 7 in first collumn of memory address 0030;
+    - 8 in first collumn of memory address 0040;
