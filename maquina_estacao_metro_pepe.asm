@@ -227,8 +227,8 @@ Begin:
 Main_Menu_Screen:
     MOV R2, Main_Menu                               ;Load the memory address of the main menu screen to R2
     CALL Setup_Show_Screen                          ;Call the routine to display the menu on the screen
-Main_Menu_Selection:
     CALL Clean_Inserted_Memory                      ;Call routine responsible to clean the address that holds the inserted money
+Main_Menu_Selection:
     CALL Read_Main_Input_Peripheric                 ;Call routine to read the input and pass it to R1
     CMP R1, 1                                       ;Compares R1 with the value 1
     JEQ Buy_Ticket_Screen                           ;Call routine to handle the buy option
@@ -406,6 +406,7 @@ Not_Enough_Money:
     JEQ Intermediate1_Main_Menu                     ;Go back to the main menu when canceled is selected
     JMP Not_Enough_Money                            ;In case the option is invalid or not selected, repeat rotine
 
+
 Enough_Money:
     MOV R4, Memory_Address_Number_Tickets_Created   ;Address where the number of tickets that exists is stored
     MOV R7, [R4]                                    ;Pass the number of tickets that exist to R7
@@ -446,19 +447,9 @@ Present_Ticket:
     CALL Read_Main_Input_Peripheric                 ;Routine to Read the input for the input peripheric and pass it to R1
     CMP R1, 1                                       ;Compares R1 with the value 1
     JEQ Intermediate1_Main_Menu                     ;Go to the main menu
-    CALL Present_Ticket                             ;In case no option is choosen repeat routine
+    JMP Present_Ticket                              ;Go to the main menu
 
 
-Use_Card_Screen:
-    MOV R2, Introduce_Ticket_Number_Menu            ;Moves to R2 the Introduce_Ticket_Number_Menu address
-    CALL Setup_Show_Screen                          ;Updates the screen
-Use_Card:
-    CALL Read_Main_Input_Peripheric                 ;Routine to Read the input for the input peripheric and pass it to R1
-    CMP R1, 1                                       ;Compares R1 with the value 1
-    JEQ Continue_Ticket                             ;Continue to the ticket with the number selected
-    CMP R1, 5                                       ;Compares R1 with the value 1
-    JEQ Intermediate1_Main_Menu                     ;Go to the main menu
-    CALL Use_Card                                   ;In case no option is choosen repeat routine
 
 Continue_Ticket:
     MOV R3, 0                                       ;Set R3 to 0
@@ -506,7 +497,19 @@ Accepted_Ticket:
     JEQ Buy_With_Pepe_Card_Screen                   ;Go to the Buy_With_Pepe_Card_Screen
     CMP R1, 2                                       ;Compares R1 with the value 2
     JEQ Recharge_Pepe_Card_Screen                   ;Go to the Recharge_Pepe_Card_Screen
-    CALL Accepted_Ticket                            ;In case no option is choosen repeat routine
+    JMP Accepted_Ticket                            ;In case no option is choosen repeat routine
+
+
+Use_Card_Screen:
+    MOV R2, Introduce_Ticket_Number_Menu            ;Moves to R2 the Introduce_Ticket_Number_Menu address
+    CALL Setup_Show_Screen                          ;Updates the screen
+Use_Card:
+    CALL Read_Main_Input_Peripheric                 ;Routine to Read the input for the input peripheric and pass it to R1
+    CMP R1, 1                                       ;Compares R1 with the value 1
+    JEQ Continue_Ticket                             ;Continue to the ticket with the number selected
+    CMP R1, 5                                       ;Compares R1 with the value 1
+    JEQ Intermediate2_Main_Menu                     ;Go to the main menu
+    JNE Use_Card                                   ;In case no option is choosen repeat routine
 
 
 Intermediate2_Main_Menu:
@@ -522,7 +525,7 @@ No_Valid_Ticket_Number:
     JEQ Use_Card_Screen                             ;Go back to insert another ticket number
     CMP R1, 2                                       ;Compares R1 with the value 1
     JEQ Intermediate2_Main_Menu                     ;Go to the main menu
-    CALL No_Valid_Ticket_Number                     ;In case no option is choosen repeat routine
+    JNE No_Valid_Ticket_Number                      ;In case no option is choosen repeat routine
 
 
 Buy_With_Pepe_Card_Screen:
@@ -592,7 +595,7 @@ Enough_Money_Pepe:
     CALL Read_Main_Input_Peripheric                 ;Call routine to read the input and pass it to R1
     CMP R1, 1                                       ;Compares R1 with the value 1
     JEQ Intermediate2_Main_Menu                     ;Call Intermediate2_Main_Menu
-    CALL Enough_Money_Pepe                          ;In case the option is invalid or not selected, repeat rotine
+    JMP Enough_Money_Pepe                          ;In case the option is invalid or not selected, repeat rotine
 
 
 Intermediate3_Main_Menu:
@@ -662,7 +665,7 @@ Recharge_Ticket_Success:
     CALL Read_Main_Input_Peripheric                 ;Call routine to read the input and pass it to R1
     CMP R1, 1                                       ;Compares R1 with the value 1
     JEQ Intermediate2_Main_Menu                     ;Call Intermediate2_Main_Menu
-    CALL Recharge_Ticket_Success                    ;In case the option is invalid or not selected, repeat rotine
+    JMP Recharge_Ticket_Success                     ;In case the option is invalid or not selected, repeat rotine
 
 
 Stock_Screen_1:
@@ -717,8 +720,7 @@ Stock_Screen_3:
 Stock_3:
     CALL Read_Main_Input_Peripheric                 ;Call routine to read the input and pass it to R1
     CMP R1, 1                                       ;Compares R1 with the value 1
-    JEQ Intermediate3_Main_Menu                     ;Go back to the main menu at the end
-    CALL Stock_3                                    ;In case the option is invalid or not selected, repeat rotine
+    CALL Main_Menu_Screen                           ;Go to the main menu
 
 
 ;Routine to update a single line of the stock of coins
@@ -740,9 +742,10 @@ Aux_Update_Screen_Stock:
 
 ;Routine responsible for reading the value on the main input peripheral and passing it to R1
 Read_Main_Input_Peripheric:
-    CALL Clean_Peripherals                          ;Call rotine to clean peripherals
     MOV R0, IN_PER                                  ;Loads input peripheral address to R0
     MOVB R1, [R0]                                   ;Reads the value on the input peripheral to R1, a byte so the first memory slot is used
+    CMP R1, 0                                       ;Compare R1 with the value 0
+    JNE Clean_Peripherals                           ;If it is not equal call function to clean the peripherals
     RET
 
 ;Routine responsible for cleaning the memory slot that holds the inserted money
