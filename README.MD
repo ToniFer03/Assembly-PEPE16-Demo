@@ -7,6 +7,7 @@
 - [Requirements](#requirements)
 - [Setup](#how-to-setup-the-tools)
 - [User Manual](#how-to-use-the-code)
+- [Video Demo](#video-demonstration-of-the-repository)
 
 
 ## A function code that immitates a ticket machine in a metro system, done in the context of a university project
@@ -99,3 +100,8 @@ Example: Ticket number 2378 would be inputed as:
     - 3 in first collumn of memory address 0020;
     - 7 in first collumn of memory address 0030;
     - 8 in first collumn of memory address 0040;
+
+
+## Video demonstration of the repository
+
+https://www.youtube.com/watch?v=HXdqMTO_SWo
